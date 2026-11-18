@@ -3,103 +3,194 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DRMZ89 - Drum Machine</title>
+<title>DRMZ89 - op de RG40XX V</title>
 <style>
-  :root { --bg:#12121c; --cell:#2a2a38; --cellbeat:#3c3c4e; --txt:#f0f0f0; --dim:#787885; --acc:#eb5a3c; }
-  * { box-sizing:border-box; user-select:none; }
-  body { margin:0; background:var(--bg); color:var(--txt); font-family:ui-monospace,Menlo,Consolas,monospace; padding:12px; }
-  header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-  h1 { font-size:20px; margin:0; letter-spacing:2px; }
-  #play { min-width:90px; }
-  #bpmbox { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  #bpmval { font-size:18px; width:44px; text-align:right; }
-  button { background:#2c2c3c; color:var(--txt); border:1px solid #555; border-radius:5px;
-           font-family:inherit; font-size:13px; padding:6px 10px; cursor:pointer; }
-  button:hover { background:#3a3a4e; }
-  button.sel { background:var(--acc); border-color:#ffb3a0; color:#fff; }
-  #kitbox { margin-left:auto; display:flex; gap:6px; align-items:center; color:var(--dim); font-size:12px; }
+  * { box-sizing:border-box; user-select:none; margin:0; }
+  html, body { height:100%; }
+  body { background:radial-gradient(1200px 700px at 50% 30%, #16161f, #07070c 70%);
+         font-family:ui-monospace,Menlo,Consolas,monospace; overflow:hidden;
+         display:flex; align-items:center; justify-content:center; color:#f0f0f0; }
 
-  #grid { display:grid; gap:4px; margin-bottom:10px; }
-  .lbl { font-size:12px; color:var(--dim); padding-right:8px; text-align:right; align-self:center;
+  #stage { width:960px; height:726px; position:relative; flex:none; }
+  #device { position:absolute; inset:0; transform-origin:center center;
+            background:linear-gradient(163deg, #e6e6ea 0%, #d2d2d8 45%, #b8b8c1 100%);
+            border-radius:64px;
+            box-shadow: 0 34px 80px rgba(0,0,0,.75), 0 4px 12px rgba(0,0,0,.5),
+                        inset 0 3px 0 rgba(255,255,255,.85), inset 0 -3px 0 rgba(0,0,0,.25); }
+
+  .tab { position:absolute; top:-18px; width:190px; height:52px; background:linear-gradient(#b2b2bb, #cfcfd6);
+         border-radius:26px 26px 0 0; box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 -6px 14px rgba(0,0,0,.35);
+         color:#7d7d8a; font-size:11px; font-weight:bold; text-align:center; padding-top:4px; letter-spacing:2px; z-index:0; }
+  .tab.l { left:120px; }  .tab.r { right:120px; }
+
+  .brand { position:absolute; top:16px; left:50%; transform:translateX(-50%);
+           color:#8b8b98; font-size:12px; letter-spacing:3px; font-weight:bold; }
+  .led { position:absolute; top:20px; left:60px; width:10px; height:10px; border-radius:50%;
+         background:#e04848; box-shadow:0 0 8px #e04848, inset 0 0 2px rgba(0,0,0,.4); }
+  .ledlab { position:absolute; top:33px; left:44px; font-size:8px; color:#8b8b98; letter-spacing:1px; }
+
+  #screenwrap { position:absolute; top:56px; left:146px; width:668px; height:516px;
+                background:#0b0b12; border-radius:18px; padding:8px;
+                box-shadow: inset 0 0 0 4px #15151d, inset 0 6px 24px rgba(0,0,0,.9), 0 2px 6px rgba(255,255,255,.25); }
+  #screen { width:640px; height:480px; overflow:hidden; background:linear-gradient(170deg,#10101a,#0a0a12);
+            display:flex; flex-direction:column; padding:6px 10px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,.6); }
+
+  /* ---------------- in-screen app ---------------- */
+  #screen header { display:flex; align-items:center; gap:6px; height:30px; flex:none; }
+  #screen h1 { font-size:13px; letter-spacing:2px; color:#f0f0f0; }
+  #screen button { background:#2c2c3c; color:#f0f0f0; border:1px solid #555; border-radius:4px;
+           font-family:inherit; font-size:10px; padding:2px 8px; cursor:pointer; }
+  #screen button:hover { background:#3a3a4e; }
+  #screen button.sel { background:#eb5a3c; border-color:#ffb3a0; }
+  #bpmbox { display:flex; align-items:center; gap:4px; }
+  #bpmval { font-size:12px; width:30px; text-align:right; }
+  #kitbox { margin-left:auto; display:flex; gap:4px; align-items:center; color:#787885; font-size:9px; }
+  #kitbox .kitlbl { letter-spacing:1px; }
+  input[type=range] { accent-color:#eb5a3c; height:12px; }
+
+  #samples { display:flex; align-items:center; gap:6px; font-size:9px; color:#787885; height:22px; flex:none; }
+  #sfile { font-size:9px; color:#9a9aa8; max-width:210px; }
+  #sinfo.miss { color:#a05050; }
+
+  #grid { display:grid; gap:3px; margin:2px 0 4px 0; flex:none; }
+  .lbl { font-size:9.5px; color:#787885; padding-right:6px; text-align:right; align-self:center;
          white-space:nowrap; overflow:hidden; cursor:pointer; }
-  .lbl:hover { color:var(--txt); }
-  .lbl.cur { color:var(--txt); font-weight:bold; }
+  .lbl:hover { color:#f0f0f0; }
+  .lbl.cur { color:#ffffff; font-weight:bold; }
   .lbl.miss { color:#a05050; }
-  .cell { height:32px; border-radius:4px; background:var(--cell); cursor:pointer; position:relative; }
-  .cell.beat { background:var(--cellbeat); }
-  .cell.curs::after { content:""; position:absolute; inset:-3px; border:2px solid #fff; border-radius:6px; }
+  .cell { height:20px; border-radius:3px; background:#2a2a38; cursor:pointer; position:relative; }
+  .cell.beat { background:#3c3c4e; }
+  .cell.curs::after { content:""; position:absolute; inset:-2px; border:1.5px solid #fff; border-radius:5px; }
   .cell.ph { filter:brightness(1.8); }
 
-  #panel { border:1px solid #333; border-radius:8px; padding:10px 12px; margin-bottom:10px;
-           background:#181826; }
-  #panel h2 { font-size:13px; margin:0 0 8px 0; color:var(--dim); font-weight:normal; }
-  #panel h2 b { color:var(--txt); }
-  #prow { display:flex; flex-direction:column; gap:6px; }
-  .pitem { display:grid; grid-template-columns:64px 150px 64px 1fr; gap:8px; align-items:center; font-size:12px; }
-  .pitem span.n { color:var(--dim); text-align:right; }
-  .pitem span.v { color:var(--txt); min-width:56px; }
-  .pitem select { background:#2c2c3c; color:var(--txt); border:1px solid #555; border-radius:4px;
-                  padding:3px 5px; font-family:inherit; font-size:12px; max-width:100%; }
-  input[type=range] { accent-color:var(--acc); width:100%; }
-  input[type=range]::-webkit-slider-thumb { width:14px; height:14px; }
+  #panel { border:1px solid #2c2c3c; border-radius:8px; padding:6px 10px 7px 10px; background:#16161f;
+           flex:none; }
+  #panel h2 { font-size:10px; margin:0 0 5px 0; color:#787885; font-weight:normal; }
+  #panel h2 b { color:#f0f0f0; }
+  #prow { display:grid; grid-template-columns:1fr 1fr; column-gap:22px; row-gap:4px; }
+  .pitem { display:grid; grid-template-columns:46px 1fr 52px; gap:5px; align-items:center; font-size:9.5px; }
+  .pitem span.n { color:#787885; text-align:right; }
+  .pitem span.v { color:#f0f0f0; }
+  .pitem select { background:#2c2c3c; color:#f0f0f0; border:1px solid #555; border-radius:3px;
+                  padding:1px 3px; font-family:inherit; font-size:9.5px; width:100%; }
 
-  #foot { color:var(--dim); font-size:11.5px; line-height:1.7; max-width:980px; }
-  kbd { background:#2a2a38; border:1px solid #444; border-radius:3px; padding:0 5px; color:var(--txt); }
-  #sinfo.miss { color:#a05050; font-size:12px; margin-top:4px; }
+  #hint { margin-top:auto; font-size:8.5px; color:#5c5c6e; flex:none; }
+  #hint kbd { background:#23232e; border:1px solid #3d3d4a; border-radius:2px; padding:0 3px; color:#9a9aa8; }
+
+  /* ---------------- physical controls ---------------- */
+  #controls { position:absolute; left:0; right:0; bottom:26px; height:130px;
+              display:flex; align-items:center; justify-content:space-between; padding:0 74px; }
+
+  #dpad { position:relative; width:138px; height:138px; }
+  #dpad::before { content:""; position:absolute; inset:12px 40px; background:#1c1c22; border-radius:9px;
+                  box-shadow: inset 0 -2px 3px rgba(0,0,0,.8), 0 2px 4px rgba(255,255,255,.28); }
+  #dpad::after { content:""; position:absolute; inset:40px 12px; background:#1c1c22; border-radius:9px; }
+  .dbtn { position:absolute; width:52px; height:52px; background:transparent; border:none; cursor:pointer;
+          z-index:2; border-radius:12px; }
+  .dbtn::after { content:""; position:absolute; left:11px; top:16px; right:11px; height:10px; border-radius:4px;
+                 background:linear-gradient(#101014, #292930); box-shadow: inset 0 1px 1px rgba(255,255,255,.08); }
+  .dbtn:active::after { background:#101014; }
+  .dbtn.up { top:0; left:43px; }
+  .dbtn.down { bottom:0; left:43px; } .dbtn.down::after { top:auto; bottom:16px; }
+  .dbtn.left { left:0; top:43px; transform:rotate(-90deg); }
+  .dbtn.right { right:0; top:43px; transform:rotate(90deg); }
+  .dcenter { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:30px; height:30px;
+             border-radius:50%; background:radial-gradient(circle at 40% 35%, #2c2c33, #14141a); z-index:2;
+             box-shadow: 0 1px 2px rgba(255,255,255,.2); }
+
+  #mid { display:flex; flex-direction:column; gap:14px; align-items:center; }
+  .ss { width:64px; height:20px; border-radius:10px; background:linear-gradient(#26262e, #191920);
+        color:#6e6e7a; font-family:inherit; font-size:8px; letter-spacing:2px; border:none; cursor:pointer;
+        transform:rotate(-14deg); box-shadow: inset 0 1px 2px rgba(0,0,0,.7), 0 1px 1px rgba(255,255,255,.35); }
+  .ss:active { background:#14141a; }
+  .ss + .ss { transform:rotate(14deg); }
+
+  #abxy { position:relative; width:138px; height:138px; }
+  .fbtn { position:absolute; width:50px; height:50px; border-radius:50%; border:none; cursor:pointer;
+          background:radial-gradient(circle at 38% 30%, #34343c, #1b1b22);
+          color:#b9b9c4; font-family:inherit; font-size:15px; font-weight:bold;
+          box-shadow: inset 0 1px 1px rgba(255,255,255,.14), 0 3px 5px rgba(0,0,0,.45); }
+  .fbtn:active { background:#14141a; box-shadow: inset 0 2px 5px rgba(0,0,0,.8); }
+  .fbtn.x { top:0; left:44px; } .fbtn.x::after { color:#79c4ff; }
+  .fbtn.y { top:44px; left:0; } .fbtn.y::after { color:#79ffc4; }
+  .fbtn.a { top:44px; right:0; } .fbtn.a::after { color:#ff9c79; }
+  .fbtn.b { bottom:0; left:44px; } .fbtn.b::after { color:#ffe079; }
+  .fbtn span { display:block; margin-top:14px; }
+
+  .spk { position:absolute; bottom:96px; width:22px; text-align:center; color:#a2a2ac;
+         font-size:9px; letter-spacing:3px; line-height:1.9; }
+  .spk.l { left:36px; }  .spk.r { right:36px; }
 </style>
 </head>
 <body>
-<header>
-  <h1>DRMZ89</h1>
-  <button id="play">&#9654; PLAY</button>
-  <div id="bpmbox">
-    <button id="bpmdn">&minus;</button><span id="bpmval">120</span><button id="bpmup">+</button>
-    <input id="bpmr" type="range" min="30" max="300" value="120" style="width:110px">
+<div id="stage">
+  <div id="device">
+    <div class="tab l">L1</div><div class="tab r">R1</div>
+    <div class="led"></div><div class="ledlab">PWR</div>
+    <div class="brand">RG40XX&nbsp;V</div>
+
+    <div id="screenwrap">
+      <div id="screen">
+        <header>
+          <h1>DRMZ89</h1>
+          <button id="play">&#9654;</button>
+          <div id="bpmbox"><button id="bpmdn">&minus;</button><span id="bpmval">120</span><button id="bpmup">+</button></div>
+          <input id="bpmr" type="range" min="30" max="300" value="120" style="width:80px">
+          <div id="kitbox"><span class="kitlbl">KIT</span><button id="kit808" class="sel">808</button><button id="kit909">909</button><button id="clear">CLR</button></div>
+        </header>
+
+        <div id="samples">
+          <label>&#128266; SAMPLER:</label>
+          <input id="sfile" type="file" accept="audio/*" multiple>
+          <div id="sinfo" class="miss">nog geen samples geladen</div>
+        </div>
+
+        <div id="grid"></div>
+
+        <div id="panel">
+          <h2>TRACK <b id="ptname">1</b> &mdash; klank &amp; knoppen</h2>
+          <div id="prow">
+            <div class="pitem"><span class="n">SOUND</span><select id="psound"></select><span class="v"></span></div>
+            <div class="pitem"><span class="n">LEVEL</span><input id="pgain" type="range" min="0" max="200" value="100"><span class="v" id="vgain">100%</span></div>
+            <div class="pitem"><span class="n">ATTACK</span><input id="patt" type="range" min="0" max="400" value="0"><span class="v" id="vatt">0 ms</span></div>
+            <div class="pitem"><span class="n">DECAY</span><input id="pdec" type="range" min="10" max="3000" value="200"><span class="v" id="vdec">200 ms</span></div>
+            <div class="pitem"><span class="n">CUTOFF</span><input id="pfc" type="range" min="0" max="1000" value="1000"><span class="v" id="vfc">uit</span></div>
+            <div class="pitem"><span class="n">RESO</span><input id="pq" type="range" min="3" max="150" value="7"><span class="v" id="vq">0.7</span></div>
+            <div class="pitem"><span class="n">DRIVE</span><input id="pdrv" type="range" min="0" max="100" value="0"><span class="v" id="vdrv">0%</span></div>
+            <div class="pitem"><span class="n">CRUSH</span><input id="pcr" type="range" min="0" max="100" value="0"><span class="v" id="vcr">0%</span></div>
+          </div>
+        </div>
+
+        <div id="hint">
+          <kbd>&larr;&uarr;&darr;&rarr;</kbd> cursor &middot; <kbd>A</kbd> stap &middot; <kbd>B</kbd> preview &middot; <kbd>X/Y</kbd> klank &middot; <kbd>L1/R1</kbd> bpm &middot; <kbd>SELECT</kbd> terug naar stap 1 &middot; <kbd>START</kbd> play/stop &middot; of gewoon muis/klik
+        </div>
+      </div>
+    </div>
+
+    <div class="spk l">&bull;&bull;&bull;<br>&bull;&bull;&bull;</div>
+    <div class="spk r">&bull;&bull;&bull;<br>&bull;&bull;&bull;</div>
+
+    <div id="controls">
+      <div id="dpad">
+        <button class="dbtn up"    data-act="up"    title="D-pad omhoog"></button>
+        <button class="dbtn down"  data-act="down"  title="D-pad omlaag"></button>
+        <button class="dbtn left"  data-act="left"  title="D-pad links"></button>
+        <button class="dbtn right" data-act="right" title="D-pad rechts"></button>
+        <div class="dcenter"></div>
+      </div>
+      <div id="mid">
+        <button class="ss" data-act="rewind" title="playhead terug naar stap 1">SELECT</button>
+        <button class="ss wide" data-act="playstop" title="play/stop">START</button>
+      </div>
+      <div id="abxy">
+        <button class="fbtn x" data-act="sndnext"   title="volgende klank"><span>X</span></button>
+        <button class="fbtn y" data-act="sndprev"   title="vorige klank"><span>Y</span></button>
+        <button class="fbtn a" data-act="toggle"    title="stap aan/uit + preview"><span>A</span></button>
+        <button class="fbtn b" data-act="preview"   title="preview geluid"><span>B</span></button>
+      </div>
+    </div>
   </div>
-  <div id="kitbox">
-    KIT:&nbsp;
-    <button id="kit808" class="sel">808</button>
-    <button id="kit909">909</button>
-    <button id="clear" title="wis alle stappen">CLEAR</button>
-  </div>
-</header>
-
-<div id="grid"></div>
-
-<div id="panel">
-  <h2>TRACK <b id="ptname">1</b> &mdash; klank &amp; knoppen</h2>
-  <div id="prow">
-    <div class="pitem"><span class="n">SOUND</span>
-      <select id="psound"></select><span class="v"></span><span></span></div>
-    <div class="pitem"><span class="n">LEVEL</span>
-      <input id="pgain"  type="range" min="0" max="200" value="100"><span class="v" id="vgain">100%</span><span class="v"></span></div>
-    <div class="pitem"><span class="n">ATTACK</span>
-      <input id="patt"   type="range" min="0" max="400" value="0"><span class="v" id="vatt">0 ms</span><span class="v"></span></div>
-    <div class="pitem"><span class="n">DECAY</span>
-      <input id="pdec"   type="range" min="10" max="3000" value="200"><span class="v" id="vdec">200 ms</span><span class="v"></span></div>
-    <div class="pitem"><span class="n">CUTOFF</span>
-      <input id="pfc"    type="range" min="0" max="1000" value="1000"><span class="v" id="vfc">uit</span><span class="v"></span></div>
-    <div class="pitem"><span class="n">RESO</span>
-      <input id="pq"     type="range" min="3" max="150" value="7"><span class="v" id="vq">0.7</span><span class="v"></span></div>
-    <div class="pitem"><span class="n">DRIVE</span>
-      <input id="pdrv"   type="range" min="0" max="100" value="0"><span class="v" id="vdrv">0%</span><span class="v"></span></div>
-    <div class="pitem"><span class="n">CRUSH</span>
-      <input id="pcr"    type="range" min="0" max="100" value="0"><span class="v" id="vcr">0%</span><span class="v"></span></div>
-  </div>
-</div>
-
-<div>
-  <label style="color:var(--dim);font-size:12px;">Sampler (max 8 bestanden, naamvolgorde &rarr; SOUND-lijst): </label>
-  <input id="sfile" type="file" accept="audio/*" multiple>
-  <div id="sinfo" class="miss">nog geen samples geladen</div>
-</div>
-
-<div id="foot" style="margin-top:10px;">
-  <kbd>&larr; &uarr; &darr; &rarr;</kbd> cursor &middot; <kbd>A</kbd> stap aan/uit + preview &middot;
-  <kbd>S</kbd> preview &middot; <kbd>Q</kbd>/<kbd>W</kbd> klank vorige/volgende &middot;
-  <kbd>Z</kbd>/<kbd>X</kbd> BPM &minus;/+ &middot; <kbd>Spatie</kbd> play/stop.<br>
-  Klik een tracknaam om hem te selecteren; het paneel hieronder past dan die track aan.
-  Alles wordt automatisch in je browser opgeslagen.
 </div>
 
 <script>
@@ -568,34 +659,69 @@ document.getElementById("sfile").onchange = async e => {
   save(); paint();
 };
 
-// ---------------------------------------------------------------- keyboard
-document.addEventListener("keydown", e => {
-  const k = e.key.toLowerCase();
-  if (k === " ") { e.preventDefault(); togglePlay(); return; }
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
+// ---------------------------------------------------------------- acts: shared by device shell + keyboard
+function act(name) {
   ensureCtx();
-  switch (k) {
-    case "arrowup":    curTrack = (curTrack + TBP - 1) % TBP; break;
-    case "arrowdown":  curTrack = (curTrack + 1) % TBP; break;
-    case "arrowleft":  curStepEd = (curStepEd + NSTEP - 1) % NSTEP; break;
-    case "arrowright": curStepEd = (curStepEd + 1) % NSTEP; break;
-    case "a": pat[curTrack][curStepEd] ^= 1; trig(curTrack); save(); break;
-    case "s": trig(curTrack); break;
-    case "q": case "w": {
-      const d = (k === "w") ? 1 : -1;
-      tracks[curTrack].sound = (tracks[curTrack].sound + d + SOUNDS.length) % SOUNDS.length;
-      tracks[curTrack].dec = SOUNDS[tracks[curTrack].sound].nat;
-      tracks[curTrack].att = 0;
-      tracks[curTrack].dirty = true;
+  switch (name) {
+    case "up":    curTrack = (curTrack + TBP - 1) % TBP; break;
+    case "down":  curTrack = (curTrack + 1) % TBP; break;
+    case "left":  curStepEd = (curStepEd + NSTEP - 1) % NSTEP; break;
+    case "right": curStepEd = (curStepEd + 1) % NSTEP; break;
+    case "toggle": pat[curTrack][curStepEd] ^= 1; trig(curTrack); save(); break;
+    case "preview": trig(curTrack); break;
+    case "sndnext": case "sndprev": {
+      const d = (name === "sndnext") ? 1 : -1;
+      const tr = tracks[curTrack];
+      tr.sound = (tr.sound + d + SOUNDS.length) % SOUNDS.length;
+      tr.dec = SOUNDS[tr.sound].nat;
+      tr.att = 0;
+      tr.dirty = true;
       trig(curTrack); save();
       break;
     }
-    case "z": bpm = Math.max(30, bpm - 2); save(); break;
-    case "x": bpm = Math.min(300, bpm + 2); save(); break;
+    case "bpmup": bpm = Math.min(300, bpm + 2); save(); break;
+    case "bpmdn": bpm = Math.max(30, bpm - 2); save(); break;
+    case "playstop": togglePlay(); return;
+    case "rewind":
+      schedStep = 0; uiStep = -1;
+      nextStepTime = Math.max(nextStepTime, ctx.currentTime + 0.03);
+      break;
+    case "clear":
+      for (let r = 0; r < TBP; r++) pat[r].fill(0);
+      save();
+      break;
     default: return;
   }
   paint();
+}
+
+// RG40XX V buttons (clickable shell) use the same acts
+document.querySelectorAll("[data-act]").forEach(el =>
+  el.addEventListener("pointerdown", e => { e.preventDefault(); act(el.dataset.act); }));
+
+// PC keyboard mirrors the handheld: arrows=dpad, A/B, Q/W=X/Y, Z/X=L1/R1, space=START, enter=SELECT
+const KEYACT = {
+  arrowup: "up", arrowdown: "down", arrowleft: "left", arrowright: "right",
+  a: "toggle", s: "preview",
+  q: "sndprev", w: "sndnext",
+  z: "bpmdn", x: "bpmup",
+  " ": "playstop", enter: "rewind"
+};
+document.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if (k.startsWith("arrow") || k === " ") e.preventDefault();
+  if (k >= "1" && k <= "8") { ensureCtx(); curTrack = +k - 1; paint(); return; }
+  const a = KEYACT[k];
+  if (a) act(a);
 });
+
+// fit the handheld shell to the browser window
+const DW = 960, DH = 726 + 18;
+function fit() {
+  const s = Math.min((window.innerWidth - 14) / DW, (window.innerHeight - 14) / DH, 1.15);
+  document.getElementById("device").style.transform = "scale(" + s + ")";
+}
+window.addEventListener("resize", fit);
 
 // ---------------------------------------------------------------- boot
 function demoPattern() {
