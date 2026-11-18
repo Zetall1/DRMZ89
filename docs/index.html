@@ -5,87 +5,209 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DRMZ89 - Drum Machine</title>
 <style>
-  :root { --bg:#12121c; --cell:#2a2a38; --cellbeat:#3c3c4e; --txt:#f0f0f0; --dim:#787885; }
+  :root { --bg:#12121c; --cell:#2a2a38; --cellbeat:#3c3c4e; --txt:#f0f0f0; --dim:#787885; --acc:#eb5a3c; }
   * { box-sizing:border-box; user-select:none; }
   body { margin:0; background:var(--bg); color:var(--txt); font-family:ui-monospace,Menlo,Consolas,monospace; padding:12px; }
-  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:10px; }
+  header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
   h1 { font-size:20px; margin:0; letter-spacing:2px; }
-  #bankname { font-size:16px; font-weight:bold; padding:3px 10px; border-radius:4px; color:#fff; cursor:pointer; }
-  #bpmbox { display:flex; align-items:center; gap:6px; margin-left:auto; flex-wrap:wrap; }
+  #play { min-width:90px; }
+  #bpmbox { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   #bpmval { font-size:18px; width:44px; text-align:right; }
   button { background:#2c2c3c; color:var(--txt); border:1px solid #555; border-radius:5px;
-           font-family:inherit; font-size:14px; padding:6px 12px; cursor:pointer; }
+           font-family:inherit; font-size:13px; padding:6px 10px; cursor:pointer; }
   button:hover { background:#3a3a4e; }
-  #grid { display:grid; gap:4px; margin-bottom:12px; }
+  button.sel { background:var(--acc); border-color:#ffb3a0; color:#fff; }
+  #kitbox { margin-left:auto; display:flex; gap:6px; align-items:center; color:var(--dim); font-size:12px; }
+
+  #grid { display:grid; gap:4px; margin-bottom:10px; }
   .lbl { font-size:12px; color:var(--dim); padding-right:8px; text-align:right; align-self:center;
          white-space:nowrap; overflow:hidden; cursor:pointer; }
   .lbl:hover { color:var(--txt); }
+  .lbl.cur { color:var(--txt); font-weight:bold; }
   .lbl.miss { color:#a05050; }
-  .cell { height:34px; border-radius:4px; background:var(--cell); cursor:pointer; position:relative; }
+  .cell { height:32px; border-radius:4px; background:var(--cell); cursor:pointer; position:relative; }
   .cell.beat { background:var(--cellbeat); }
   .cell.curs::after { content:""; position:absolute; inset:-3px; border:2px solid #fff; border-radius:6px; }
   .cell.ph { filter:brightness(1.8); }
+
+  #panel { border:1px solid #333; border-radius:8px; padding:10px 12px; margin-bottom:10px;
+           background:#181826; }
+  #panel h2 { font-size:13px; margin:0 0 8px 0; color:var(--dim); font-weight:normal; }
+  #panel h2 b { color:var(--txt); }
+  #prow { display:flex; flex-direction:column; gap:6px; }
+  .pitem { display:grid; grid-template-columns:64px 150px 64px 1fr; gap:8px; align-items:center; font-size:12px; }
+  .pitem span.n { color:var(--dim); text-align:right; }
+  .pitem span.v { color:var(--txt); min-width:56px; }
+  .pitem select { background:#2c2c3c; color:var(--txt); border:1px solid #555; border-radius:4px;
+                  padding:3px 5px; font-family:inherit; font-size:12px; max-width:100%; }
+  input[type=range] { accent-color:var(--acc); width:100%; }
+  input[type=range]::-webkit-slider-thumb { width:14px; height:14px; }
+
   #foot { color:var(--dim); font-size:11.5px; line-height:1.7; max-width:980px; }
   kbd { background:#2a2a38; border:1px solid #444; border-radius:3px; padding:0 5px; color:var(--txt); }
-  #samp { margin-bottom:10px; }
-  #samp label { color:var(--dim); font-size:12px; display:block; margin-bottom:4px; }
-  #sinfo.miss { color:#a05050; font-size:12px; }
-  input[type=range] { accent-color:#eb5a3c; }
+  #sinfo.miss { color:#a05050; font-size:12px; margin-top:4px; }
 </style>
 </head>
 <body>
 <header>
   <h1>DRMZ89</h1>
-  <div id="bankname" title="klik: volgende bank">TR-808</div>
   <button id="play">&#9654; PLAY</button>
   <div id="bpmbox">
-    <button id="bpmdn">&minus;</button>
-    <span id="bpmval">120</span>
-    <button id="bpmup">+</button>
-    <input id="bpmr" type="range" min="30" max="300" value="120" style="width:120px">
-    <button id="clear" title="wis alle stappen van de huidige bank">CLEAR</button>
+    <button id="bpmdn">&minus;</button><span id="bpmval">120</span><button id="bpmup">+</button>
+    <input id="bpmr" type="range" min="30" max="300" value="120" style="width:110px">
+  </div>
+  <div id="kitbox">
+    KIT:&nbsp;
+    <button id="kit808" class="sel">808</button>
+    <button id="kit909">909</button>
+    <button id="clear" title="wis alle stappen">CLEAR</button>
   </div>
 </header>
 
-<div id="samp" hidden>
-  <label>Sampler: kies tot 8 WAV/MP3-bestanden (in naamvolgorde op pad 1&ndash;8):</label>
+<div id="grid"></div>
+
+<div id="panel">
+  <h2>TRACK <b id="ptname">1</b> &mdash; klank &amp; knoppen</h2>
+  <div id="prow">
+    <div class="pitem"><span class="n">SOUND</span>
+      <select id="psound"></select><span class="v"></span><span></span></div>
+    <div class="pitem"><span class="n">LEVEL</span>
+      <input id="pgain"  type="range" min="0" max="200" value="100"><span class="v" id="vgain">100%</span><span class="v"></span></div>
+    <div class="pitem"><span class="n">ATTACK</span>
+      <input id="patt"   type="range" min="0" max="400" value="0"><span class="v" id="vatt">0 ms</span><span class="v"></span></div>
+    <div class="pitem"><span class="n">DECAY</span>
+      <input id="pdec"   type="range" min="10" max="3000" value="200"><span class="v" id="vdec">200 ms</span><span class="v"></span></div>
+    <div class="pitem"><span class="n">CUTOFF</span>
+      <input id="pfc"    type="range" min="0" max="1000" value="1000"><span class="v" id="vfc">uit</span><span class="v"></span></div>
+    <div class="pitem"><span class="n">RESO</span>
+      <input id="pq"     type="range" min="3" max="150" value="7"><span class="v" id="vq">0.7</span><span class="v"></span></div>
+    <div class="pitem"><span class="n">DRIVE</span>
+      <input id="pdrv"   type="range" min="0" max="100" value="0"><span class="v" id="vdrv">0%</span><span class="v"></span></div>
+    <div class="pitem"><span class="n">CRUSH</span>
+      <input id="pcr"    type="range" min="0" max="100" value="0"><span class="v" id="vcr">0%</span><span class="v"></span></div>
+  </div>
+</div>
+
+<div>
+  <label style="color:var(--dim);font-size:12px;">Sampler (max 8 bestanden, naamvolgorde &rarr; SOUND-lijst): </label>
   <input id="sfile" type="file" accept="audio/*" multiple>
   <div id="sinfo" class="miss">nog geen samples geladen</div>
 </div>
 
-<div id="grid"></div>
-
-<div id="foot">
+<div id="foot" style="margin-top:10px;">
   <kbd>&larr; &uarr; &darr; &rarr;</kbd> cursor &middot; <kbd>A</kbd> stap aan/uit + preview &middot;
-  <kbd>S</kbd> preview &middot; <kbd>Q</kbd>/<kbd>W</kbd> vorige/volgende bank &middot;
+  <kbd>S</kbd> preview &middot; <kbd>Q</kbd>/<kbd>W</kbd> klank vorige/volgende &middot;
   <kbd>Z</kbd>/<kbd>X</kbd> BPM &minus;/+ &middot; <kbd>Spatie</kbd> play/stop.<br>
-  Het patroon wordt automatisch in je browser opgeslagen (localStorage). Klik op een
-  tracknaam om dat geluid te previewen. Geluid start na de eerste klik (browser-regel);
-  de sampler-bank verschijnt automatisch als je naar die bank wisselt.
+  Klik een tracknaam om hem te selecteren; het paneel hieronder past dan die track aan.
+  Alles wordt automatisch in je browser opgeslagen.
 </div>
 
 <script>
 "use strict";
-const NBANK = 3, TBP = 8, NSTEP = 16, NTR = NBANK * TBP;
-const BANKNAMES = ["TR-808", "TR-909", "SAMPLER"];
-const BANKCOLORS = ["#eb5a3c", "#5096ff", "#5adc6e"];
-const NAMES = [
-  ["808 KICK","808 SNARE","808 HAT","808 OPEN","808 CLAP","COWBELL","TOM HI","TOM LO"],
-  ["909 KICK","909 SNARE","909 HAT","909 OPEN","909 CLAP","RIMSHOT","TOM HI","TOM LO"],
-  ["SAMPLE 01","SAMPLE 02","SAMPLE 03","SAMPLE 04","SAMPLE 05","SAMPLE 06","SAMPLE 07","SAMPLE 08"]
-];
-const TLEVEL = [1,.85,.55,.55,.75,.6,.9,.9,
-                1,.85,.55,.55,.75,.7,.9,.9,
-                1,1,1,1,1,1,1,1];
+const TBP = 8, NSTEP = 16;
 
+// ---------------------------------------------------------------- sound library
+// every gen() returns a sample function f(i, t) that stays mathematically valid for any i
+const samplerData = new Array(8).fill(null);
+const rnd = () => Math.random() * 2 - 1;
+const sq  = (p) => ((p / (2 * Math.PI)) % 1 < 0.5 ? 1 : -1);
+
+function genKick808(dec) { let ph = 0; return (i, t) => {
+  ph += 2 * Math.PI * (48 + 110 * Math.exp(-t * 22)) / SR();
+  return Math.sin(ph) * Math.exp(-t * 6.5 / dec); }; }
+function genKick909(dec) {
+  let ph = 0, lpy = 0;
+  return (i, t) => {
+    ph += 2 * Math.PI * (46 + 260 * Math.exp(-t * 38)) / SR();
+    lpy += 0.35 * (rnd() - lpy);
+    const click = (rnd() - lpy) * Math.exp(-t * 260);
+    return (Math.sin(ph) * 1.1 + click * 0.9) * Math.exp(-t * 7 / dec); }; }
+function genSnare808(dec) {
+  let p1 = 0, p2 = 0, lpy = 0;
+  return (i, t) => {
+    p1 += 2 * Math.PI * 185 / SR(); p2 += 2 * Math.PI * 330 / SR();
+    const w = rnd();
+    lpy += 0.25 * (w - lpy);
+    return (Math.sin(p1) + 0.7 * Math.sin(p2)) * Math.exp(-t * 32 / dec) * 0.6
+         + (w - lpy) * Math.exp(-t * 30 / dec); }; }
+function genSnare909(dec) {
+  let p = 0, l1 = 0, l2 = 0;
+  return (i, t) => {
+    p += 2 * Math.PI * (190 + 60 * Math.exp(-t * 40)) / SR();
+    const w = rnd();
+    l1 += 0.45 * (w - l1); l2 += 0.15 * (w - l2);
+    return (l1 - l2) * Math.exp(-t * 24 / dec) * 0.9
+         + Math.sin(p) * Math.exp(-t * 26 / dec) * 0.45; }; }
+function genHat(dec, nine, open) {
+  const cutoff = nine ? 0.55 : 0.40;
+  let l1 = 0, l2 = 0;
+  return (i, t) => {
+    const w = rnd();
+    l1 += cutoff * (w - l1); l2 += 0.14 * (w - l2);
+    return (l1 - l2) * Math.exp(-t * (open ? 5.5 : 50) / dec); }; }
+function genClap(dec, nine) {
+  const tb = nine ? 0.009 : 0.010, dk = nine ? 120 : 140, kt = nine ? 11 : 18, t0 = nine ? 0.027 : 0.030;
+  let lpy = 0;
+  return (i, t) => {
+    const w = rnd();
+    lpy += (nine ? 0.35 : 0.30) * (w - lpy);
+    let env = 0;
+    for (let b = 0; b < 3; b++) if (t >= tb * b) env = Math.max(env, Math.exp(-(t - tb * b) * dk / dec));
+    const tail = t >= t0 ? Math.exp(-(t - t0) * kt / dec) : 0;
+    return (w - lpy) * Math.max(env, tail * (nine ? 0.9 : 1)); }; }
+function genCowbell(dec) {
+  let p1 = 0, p2 = 0;
+  return (i, t) => {
+    p1 += 2 * Math.PI * 560 / SR(); p2 += 2 * Math.PI * 845 / SR();
+    return 0.6 * sq(p1) * Math.exp(-t * 20 / dec) + 0.4 * sq(p2) * Math.exp(-t * 12 / dec); }; }
+function genRim(dec) {
+  let p1 = 0, p2 = 0;
+  return (i, t) => {
+    p1 += 2 * Math.PI * 1700 / SR(); p2 += 2 * Math.PI * 437 / SR();
+    return (0.5 * Math.sin(p1) + Math.sin(p2)) * Math.exp(-t * 90 / dec); }; }
+function genTom(dec, f0, f1) { let ph = 0; return (i, t) => {
+  const f = f1 + (f0 - f1) * Math.exp(-t * 18);
+  ph += 2 * Math.PI * f / SR();
+  return Math.sin(ph) * Math.exp(-t * 10 / dec); }; }
+
+function mkSound(name, nat, kit, mk) { return { name, nat, kit, mk }; }
+const SOUNDS = [
+  mkSound("808 KICK",   0.35, 0, dec => genKick808(dec)),
+  mkSound("808 SNARE",  0.22, 0, dec => genSnare808(dec)),
+  mkSound("808 HAT",    0.06, 0, dec => genHat(dec, 0, 0)),
+  mkSound("808 OPEN",   0.35, 0, dec => genHat(dec, 0, 1)),
+  mkSound("808 CLAP",   0.25, 0, dec => genClap(dec, 0)),
+  mkSound("COWBELL",    0.22, 0, dec => genCowbell(dec)),
+  mkSound("TOM HI",     0.22, 0, dec => genTom(dec, 330, 200)),
+  mkSound("TOM LO",     0.28, 0, dec => genTom(dec, 205, 70)),
+  mkSound("909 KICK",   0.38, 1, dec => genKick909(dec)),
+  mkSound("909 SNARE",  0.22, 1, dec => genSnare909(dec)),
+  mkSound("909 HAT",    0.05, 1, dec => genHat(dec, 1, 0)),
+  mkSound("909 OPEN",   0.30, 1, dec => genHat(dec, 1, 1)),
+  mkSound("909 CLAP",   0.38, 1, dec => genClap(dec, 1)),
+  mkSound("RIMSHOT",    0.045, 1, dec => genRim(dec)),
+  mkSound("TOM HI 909", 0.22, 1, dec => genTom(dec, 380, 240)),
+  mkSound("TOM LO 909", 0.28, 1, dec => genTom(dec, 250, 80)),
+];
+for (let k = 0; k < 8; k++)
+  SOUNDS.push(mkSound("SAMP %02d".replace("%02d", String(k + 1).padStart(2, "0")), 0.4, 2,
+                       dec => (i, t) => (samplerData[k] && i < samplerData[k].length) ? samplerData[k][i] * Math.exp(-t * 3 / dec) : 0));
+const NSYNTH = 16;
+
+
+// ---------------------------------------------------------------- state
 let ctx = null, master = null;
 let bpm = 120, playing = false;
 let schedStep = 0, uiStep = -1;
 let nextStepTime = 0, scheduleTimer = null;
-let bank = 0, curTrack = 0, curStepEd = 0;
-const pat = Array.from({ length: NTR }, () => new Uint8Array(NSTEP));
-const bufs = Array(NTR).fill(null);
-let uiTimeouts = [];
+let curTrack = 0, curStepEd = 0;
+const pat = Array.from({ length: TBP }, () => new Uint8Array(NSTEP));
+const tracks = Array.from({ length: TBP }, (_, r) => ({
+  sound: r,           // index into SOUNDS (default: 808 kit)
+  gain: 1, att: 0, dec: SOUNDS[r].nat,
+  fc: 1, q: 0.7, drv: 0, cr: 0,
+  buf: null, dirty: true
+}));
 
 function ensureCtx() {
   if (ctx) { ctx.resume(); return; }
@@ -93,189 +215,115 @@ function ensureCtx() {
   master = ctx.createGain();
   master.gain.value = 0.85;
   master.connect(ctx.destination);
-  buildVoices();
 }
+const SR = () => ctx.sampleRate;
 
-// ------------------------------------------------------ synthesis (mirror of src/main.c)
+// ---------------------------------------------------------------- rendering
 function nrm(a, t) {
   let p = 1e-6;
   for (let i = 0; i < a.length; i++) p = Math.max(p, Math.abs(a[i]));
   const k = t / p;
   for (let i = 0; i < a.length; i++) a[i] *= k;
 }
-const rnd = () => Math.random() * 2 - 1;
-const sq  = (p) => ((p / (2 * Math.PI)) % 1 < 0.5 ? 1 : -1);
 
-function mkArr(len) { return new Float32Array(len); }
-function bufOf(a) {
-  const b = ctx.createBuffer(1, a.length, ctx.sampleRate);
+function renderTrack(tr) {
+  const S = SOUNDS[tr.sound];
+  const dec = Math.max(S.nat * 0.05, tr.dec / 1000);        // slider is in ms
+  const att = tr.att / 1000;
+  const N = Math.max(SR() * 0.03 | 0,
+              Math.min(SR() * 8 | 0, ((dec * 4 + att + 0.05) * SR()) | 0));
+  const f = S.mk(dec);
+  const a = new Float32Array(N);
+  const sampler = tr.sound >= NSYNTH;
+  const src = sampler ? samplerData[SOUNDS[tr.sound].idx] : null;
+  for (let i = 0; i < N; i++) {
+    const t = i / SR();
+    let v = src
+      ? (i < src.length ? src[i] : 0) * Math.exp(-t * 3 / dec)
+      : f(i, t);
+    if (att > 0) v *= Math.min(1, t / att);
+    a[i] = v;
+  }
+  // drive (soft clip / waveshaper)
+  if (tr.drv > 0) {
+    const g = 1 + tr.drv * 14;
+    for (let i = 0; i < N; i++) a[i] = Math.tanh(a[i] * g);
+  }
+  // bit crush (quantize + sample & hold)
+  if (tr.cr > 0) {
+    const bits = 16 - tr.cr * 13;                      // 16 down to 3 bits
+    const lv = Math.pow(2, bits) / 2;
+    const hold = Math.max(1, Math.round(1 + tr.cr * 40));
+    if (hold > 1) {
+      let acc = 0, step = 0;
+      for (let i = 0; i < N; i++) {
+        if (step === 0) { acc = Math.round(a[i] * lv) / lv; }
+        a[i] = acc;
+        if (++step >= hold) step = 0;
+      }
+    } else {
+      for (let i = 0; i < N; i++) a[i] = Math.round(a[i] * lv) / lv;
+    }
+  }
+  nrm(a, 0.9);
+  const b = ctx.createBuffer(1, N, SR());
   b.copyToChannel(a, 0);
-  return b;
-}
-const SR = () => ctx.sampleRate;
-
-function synthKick808() {
-  const len = SR() / 2 | 0, a = mkArr(len);
-  let phase = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    const f = 48 + 110 * Math.exp(-t * 22);
-    phase += 2 * Math.PI * f / SR();
-    a[i] = Math.sin(phase) * Math.exp(-t * 6.5);
-  }
-  nrm(a, 0.9); return bufOf(a);
-}
-function synthKick909() {
-  const len = SR() * 0.6 | 0, a = mkArr(len);
-  let phase = 0, lpy = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    const f = 46 + 260 * Math.exp(-t * 38);
-    phase += 2 * Math.PI * f / SR();
-    lpy += 0.35 * (rnd() - lpy);
-    const click = (rnd() - lpy) * Math.exp(-t * 260);
-    a[i] = (Math.sin(phase) * 1.1 + click * 0.9) * Math.exp(-t * 7);
-  }
-  nrm(a, 0.9); return bufOf(a);
-}
-function synthSnare808() {
-  const len = SR() / 4 | 0, a = mkArr(len);
-  let p1 = 0, p2 = 0, lpy = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    p1 += 2 * Math.PI * 185 / SR();
-    p2 += 2 * Math.PI * 330 / SR();
-    const w = rnd();
-    lpy += 0.25 * (w - lpy);
-    a[i] = (Math.sin(p1) + 0.7 * Math.sin(p2)) * Math.exp(-t * 32) * 0.6
-         + (w - lpy) * Math.exp(-t * 30);
-  }
-  nrm(a, 0.85); return bufOf(a);
-}
-function synthSnare909() {
-  const len = SR() / 4 | 0, a = mkArr(len);
-  let p = 0, l1 = 0, l2 = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    p += 2 * Math.PI * (190 + 60 * Math.exp(-t * 40)) / SR();
-    const w = rnd();
-    l1 += 0.45 * (w - l1);
-    l2 += 0.15 * (w - l2);
-    a[i] = (l1 - l2) * Math.exp(-t * 24) * 0.9 + Math.sin(p) * Math.exp(-t * 26) * 0.45;
-  }
-  nrm(a, 0.85); return bufOf(a);
-}
-function synthHat(nine, open) {
-  const len = (open ? 0.5 : 1 / 16) * SR() | 0, a = mkArr(len);
-  const cutoff = nine ? 0.55 : 0.40;
-  const decay = open ? (nine ? 5 : 4.5) : (nine ? 42 : 55);
-  let l1 = 0, l2 = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR(), w = rnd();
-    l1 += cutoff * (w - l1);
-    l2 += 0.14 * (w - l2);
-    a[i] = (l1 - l2) * Math.exp(-t * decay);
-  }
-  nrm(a, 0.55); return bufOf(a);
-}
-function synthClap(nine) {
-  const len = SR() * (nine ? 0.5 : 1 / 3) | 0, a = mkArr(len);
-  const tb = nine ? 0.009 : 0.010;
-  const dk = nine ? 120 : 140;
-  const kt = nine ? 11 : 18;
-  const t0 = nine ? 0.027 : 0.030;
-  let lpy = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR(), w = rnd();
-    lpy += (nine ? 0.35 : 0.30) * (w - lpy);
-    const hp = w - lpy;
-    let env = 0;
-    for (let b = 0; b < 3; b++) if (t >= tb * b) env = Math.max(env, Math.exp(-(t - tb * b) * dk));
-    const tail = t >= t0 ? Math.exp(-(t - t0) * kt) : 0;
-    a[i] = hp * Math.max(env, tail * (nine ? 0.9 : 1));
-  }
-  nrm(a, 0.75); return bufOf(a);
-}
-function synthCowbell() {
-  const len = SR() / 4 | 0, a = mkArr(len);
-  let p1 = 0, p2 = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    p1 += 2 * Math.PI * 560 / SR();
-    p2 += 2 * Math.PI * 845 / SR();
-    a[i] = 0.6 * sq(p1) * Math.exp(-t * 20) + 0.4 * sq(p2) * Math.exp(-t * 12);
-  }
-  nrm(a, 0.6); return bufOf(a);
-}
-function synthRim() {
-  const len = SR() / 20 | 0, a = mkArr(len);
-  let p1 = 0, p2 = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    p1 += 2 * Math.PI * 1700 / SR();
-    p2 += 2 * Math.PI * 437 / SR();
-    a[i] = (0.5 * Math.sin(p1) + Math.sin(p2)) * Math.exp(-t * 90);
-  }
-  nrm(a, 0.7); return bufOf(a);
-}
-function synthTom(f0, f1) {
-  const len = SR() / 3 | 0, a = mkArr(len);
-  let ph = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / SR();
-    const f = f1 + (f0 - f1) * Math.exp(-t * 18);
-    ph += 2 * Math.PI * f / SR();
-    a[i] = Math.sin(ph) * Math.exp(-t * 10);
-  }
-  nrm(a, 0.9); return bufOf(a);
+  tr.buf = b; tr.dirty = false;
 }
 
-function buildVoices() {
-  bufs[0] = synthKick808(); bufs[1] = synthSnare808();
-  bufs[2] = synthHat(0, 0); bufs[3] = synthHat(0, 1);
-  bufs[4] = synthClap(0);   bufs[5] = synthCowbell();
-  bufs[6] = synthTom(330, 200); bufs[7] = synthTom(205, 70);
-
-  bufs[8] = synthKick909(); bufs[9] = synthSnare909();
-  bufs[10] = synthHat(1, 0); bufs[11] = synthHat(1, 1);
-  bufs[12] = synthClap(1);   bufs[13] = synthRim();
-  bufs[14] = synthTom(380, 240); bufs[15] = synthTom(250, 80);
-}
-
-function trig(i) {
-  if (!ctx || !bufs[i]) return;
+// ---------------------------------------------------------------- voices
+function trig(r) {
+  const tr = tracks[r];
+  if (!SOUNDS[tr.sound] || (tr.sound >= NSYNTH && !samplerData[SOUNDS[tr.sound].idx])) return;
+  ensureCtx();
+  if (tr.dirty || !tr.buf) renderTrack(tr);
   const src = ctx.createBufferSource();
-  src.buffer = bufs[i];
+  src.buffer = tr.buf;
   const g = ctx.createGain();
-  g.gain.value = TLEVEL[i];
-  src.connect(g); g.connect(master);
+  g.gain.value = tr.gain;
+  if (tr.fc < 1) {
+    const biqu = ctx.createBiquadFilter();
+    biqu.type = "lowpass";
+    const fc = 40 * Math.pow(500, tr.fc);            // 40 Hz .. 20 kHz log
+    biqu.frequency.value = fc;
+    biqu.Q.value = tr.q;
+    src.connect(biqu); biqu.connect(g);
+  } else {
+    src.connect(g);
+  }
+  g.connect(master);
   src.start();
 }
 
-// ------------------------------------------------------ sequencer
+// ---------------------------------------------------------------- sequencer
 const stepDur = () => 60 / bpm / 4;
 
-function fireStep(at, s, i) {
+function trigAt(at, r) {
+  const tr = tracks[r];
+  if (!SOUNDS[tr.sound] || (tr.sound >= NSYNTH && !samplerData[SOUNDS[tr.sound].idx])) return;
+  if (tr.dirty || !tr.buf) renderTrack(tr);
   const src = ctx.createBufferSource();
-  src.buffer = bufs[i];
+  src.buffer = tr.buf;
   const g = ctx.createGain();
-  g.gain.value = TLEVEL[i];
-  src.connect(g); g.connect(master);
+  g.gain.value = tr.gain;
+  if (tr.fc < 1) {
+    const biqu = ctx.createBiquadFilter();
+    biqu.type = "lowpass";
+    biqu.frequency.value = 40 * Math.pow(500, tr.fc);
+    biqu.Q.value = tr.q;
+    src.connect(biqu); biqu.connect(g);
+  } else {
+    src.connect(g);
+  }
+  g.connect(master);
   src.start(at);
-  const delay = Math.max(0, (at - ctx.currentTime) * 1000);
-  const to = setTimeout(() => {
-    uiStep = s;
-    uiTimeouts.splice(uiTimeouts.indexOf(to), 1);
-    paint();
-  }, delay);
-  uiTimeouts.push(to);
 }
 
 function scheduler() {
   if (!playing) return;
   while (nextStepTime < ctx.currentTime + 0.15) {
-    for (let i = 0; i < NTR; i++)
-      if (pat[i][schedStep] && bufs[i]) fireStep(nextStepTime, schedStep, i);
+    for (let r = 0; r < TBP; r++)
+      if (pat[r][schedStep]) trigAt(nextStepTime, r);
     uiStep = schedStep;
     nextStepTime += stepDur();
     schedStep = (schedStep + 1) % NSTEP;
@@ -288,25 +336,23 @@ function togglePlay() {
   playing = !playing;
   document.getElementById("play").innerHTML = playing ? "&#9632; STOP" : "&#9654; PLAY";
   if (playing) {
-    schedStep = 0;
-    uiStep = -1;
+    schedStep = 0; uiStep = -1;
     nextStepTime = ctx.currentTime + 0.06;
     scheduleTimer = setInterval(scheduler, 40);
   } else {
     clearInterval(scheduleTimer);
-    uiTimeouts.forEach(clearTimeout);
-    uiTimeouts = [];
     uiStep = -1;
     paint();
   }
 }
 
-// ------------------------------------------------------ persistence
-const KEY = "drmz89";
+// ---------------------------------------------------------------- persistence
+const KEY = "drmz89v2";
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      bpm, bank, pat: pat.map(p => Array.from(p).join(""))
+      bpm, pat: pat.map(p => Array.from(p).join("")),
+      tracks: tracks.map(t => ({ s: t.sound, g: t.gain, a: t.att, d: t.dec, f: t.fc, q: t.q, v: t.drv, c: t.cr }))
     }));
   } catch (e) { /* private mode */ }
 }
@@ -315,18 +361,26 @@ function load() {
     const d = JSON.parse(localStorage.getItem(KEY));
     if (!d) return false;
     if (typeof d.bpm === "number") bpm = Math.min(300, Math.max(30, d.bpm));
-    if (typeof d.bank === "number") bank = Math.min(NBANK - 1, Math.max(0, d.bank));
-    if (Array.isArray(d.pat)) d.pat.forEach((s, i) => {
-      if (pat[i] && typeof s === "string" && s.length === NSTEP)
-        for (let k = 0; k < NSTEP; k++) pat[i][k] = s[k] === "1" ? 1 : 0;
+    if (Array.isArray(d.pat)) d.pat.forEach((s, r) => {
+      if (pat[r] && typeof s === "string" && s.length === NSTEP)
+        for (let k = 0; k < NSTEP; k++) pat[r][k] = s[k] === "1" ? 1 : 0;
+    });
+    if (Array.isArray(d.tracks)) d.tracks.forEach((t, r) => {
+      if (!tracks[r] || typeof t !== "object") return;
+      tracks[r].sound = (typeof t.s === "number" && t.s < SOUNDS.length) ? t.s : tracks[r].sound;
+      tracks[r].gain = +t.g || 1; tracks[r].att = +t.a || 0; tracks[r].dec = Math.max(10, +t.d || tracks[r].dec);
+      tracks[r].fc = (t.f !== undefined) ? +t.f : 1; tracks[r].q = +t.q || 0.7;
+      tracks[r].drv = +t.v || 0; tracks[r].cr = +t.c || 0;
+      tracks[r].dirty = true;
     });
     return true;
   } catch (e) { return false; }
 }
 
-// ------------------------------------------------------ UI
+// ---------------------------------------------------------------- UI
 const grid = document.getElementById("grid");
 const cells = [];
+const TRACKCOLOR = ["#eb5a3c", "#e88a3c", "#e8bd3c", "#97d34c", "#4cd97e", "#4cc8d9", "#5a83ff", "#a05aff"];
 
 function buildGrid() {
   grid.innerHTML = "";
@@ -336,25 +390,18 @@ function buildGrid() {
     const lbl = document.createElement("div");
     lbl.className = "lbl";
     lbl.dataset.r = r;
-    lbl.onclick = () => {
-      curTrack = r;
-      ensureCtx();
-      trig(bank * TBP + r);
-      paint();
-    };
+    lbl.onclick = () => { curTrack = r; paint(); trig(r); };
     grid.appendChild(lbl);
     for (let s = 0; s < NSTEP; s++) {
       const c = document.createElement("div");
       c.className = "cell";
       c.dataset.r = r; c.dataset.s = s;
       c.onclick = () => {
-        const i = bank * TBP + r;
         ensureCtx();
-        pat[i][s] ^= 1;
+        pat[r][s] ^= 1;
         curTrack = r; curStepEd = s;
-        trig(i);
-        save();
-        paint();
+        trig(r);
+        save(); paint();
       };
       grid.appendChild(c);
       cells.push(c);
@@ -363,78 +410,185 @@ function buildGrid() {
 }
 
 function paint() {
-  const acc = BANKCOLORS[bank];
-  document.getElementById("bankname").style.background = acc;
-  document.getElementById("bankname").textContent = BANKNAMES[bank];
   document.getElementById("bpmval").textContent = bpm | 0;
   document.getElementById("bpmr").value = bpm;
-  document.getElementById("samp").hidden = bank !== 2;
   for (const c of cells) {
-    const r = +c.dataset.r, s = +c.dataset.s, i = bank * TBP + r;
-    const on = pat[i][s] !== 0;
+    const r = +c.dataset.r, s = +c.dataset.s;
+    const on = pat[r][s] !== 0;
     c.classList.toggle("beat", s % 4 === 3);
     c.classList.toggle("curs", r === curTrack && s === curStepEd);
     c.classList.toggle("ph", playing && s === uiStep);
-    c.style.background = on ? acc : "";
+    c.style.background = on ? TRACKCOLOR[r % TRACKCOLOR.length] : "";
   }
   document.querySelectorAll(".lbl").forEach(l => {
-    const r = +l.dataset.r, i = bank * TBP + r;
-    l.textContent = NAMES[bank][r] + (bufs[i] ? "" : " -");
-    l.classList.toggle("miss", !bufs[i]);
-    l.style.color = r === curTrack ? "var(--txt)" : "";
+    const r = +l.dataset.r, S = SOUNDS[tracks[r].sound];
+    const missing = r < grid.children.length && tracks[r].sound >= NSYNTH && !samplerData[S.idx];
+    l.textContent = "T" + (r + 1) + " " + S.name + (missing ? " -" : "");
+    l.classList.toggle("cur", r === curTrack);
+    l.classList.toggle("miss", missing && r === curTrack);
   });
+  paintPanel();
 }
 
-// ------------------------------------------------------ controls
-document.getElementById("bankname").onclick = () => {
-  bank = (bank + 1) % NBANK;
-  curTrack = 0;
-  buildGrid(); paint();
+// ---------------------------------------------------------------- track panel
+const P = {
+  sound: document.getElementById("psound"),
+  gain:  document.getElementById("pgain"),  vgain: document.getElementById("vgain"),
+  att:   document.getElementById("patt"),   vatt: document.getElementById("vatt"),
+  dec:   document.getElementById("pdec"),   vdec: document.getElementById("vdec"),
+  fc:    document.getElementById("pfc"),    vfc:  document.getElementById("vfc"),
+  q:     document.getElementById("pq"),     vq:   document.getElementById("vq"),
+  drv:   document.getElementById("pdrv"),   vdrv: document.getElementById("vdrv"),
+  cr:    document.getElementById("pcr"),    vcr:  document.getElementById("vcr"),
 };
+
+function fillSoundSelect() {
+  P.sound.innerHTML = "";
+  const mk = (label, start, end) => {
+    const og = document.createElement("optgroup");
+    og.label = label;
+    for (let i = start; i < end; i++) {
+      const o = document.createElement("option");
+      o.value = i;
+      o.textContent = SOUNDS[i].name + (SOUNDS[i].idx !== undefined && !samplerData[SOUNDS[i].idx] ? " (leeg)" : "");
+      og.appendChild(o);
+    }
+    P.sound.appendChild(og);
+  };
+  mk("TR-808", 0, 8);
+  mk("TR-909", 8, NSYNTH);
+  mk("SAMPLER", NSYNTH, SOUNDS.length);
+}
+
+function paintPanel() {
+  const tr = tracks[curTrack];
+  document.getElementById("ptname").textContent = String(curTrack + 1);
+  fillSoundSelect();
+  P.sound.value = String(tr.sound);
+  P.gain.value = String(Math.round(tr.gain * 100));
+  P.vgain.textContent = Math.round(tr.gain * 100) + "%";
+  P.att.value = String(tr.att);
+  P.vatt.textContent = tr.att + " ms";
+  P.dec.value = String(Math.round(tr.dec));
+  P.vdec.textContent = Math.round(tr.dec) + " ms";
+  P.fc.value = String(Math.round(tr.fc * 1000));
+  P.vfc.textContent = tr.fc >= 1 ? "uit" : Math.round(40 * Math.pow(500, tr.fc)) + " Hz";
+  P.q.value = String(Math.round(tr.q * 10));
+  P.vq.textContent = tr.q.toFixed(1);
+  P.drv.value = String(Math.round(tr.drv * 100));
+  P.vdrv.textContent = Math.round(tr.drv * 100) + "%";
+  P.cr.value = String(Math.round(tr.cr * 100));
+  P.vcr.textContent = Math.round(tr.cr * 100) + "%";
+}
+
+function setParam(name, val, rerender) {
+  const tr = tracks[curTrack];
+  switch (name) {
+    case "sound": tr.sound = val | 0; tr.dec = SOUNDS[tr.sound].nat; break;
+    case "gain":  tr.gain = Math.min(2, Math.max(0, val)); break;
+    case "att":   tr.att = Math.min(400, Math.max(0, val)); break;
+    case "dec":   tr.dec = Math.min(3000, Math.max(10, val)); break;
+    case "fc":    tr.fc = Math.min(1, Math.max(0, val)); break;
+    case "q":     tr.q = Math.min(15, Math.max(0.3, val)); break;
+    case "drv":   tr.drv = Math.min(1, Math.max(0, val)); break;
+    case "cr":    tr.cr = Math.min(1, Math.max(0, val)); break;
+  }
+  if (rerender) tr.dirty = true;
+  save();
+  paint();
+}
+
+P.sound.onchange = () => { setParam("sound", +P.sound.value, true); trig(curTrack); };
+P.gain.oninput  = () => setParam("gain", +P.gain.value / 100, false);
+P.gain.onchange = () => trig(curTrack);
+P.att.oninput   = () => setParam("att", +P.att.value, true);
+P.att.onchange  = () => trig(curTrack);
+P.dec.oninput   = () => setParam("dec", +P.dec.value, true);
+P.dec.onchange  = () => trig(curTrack);
+P.fc.oninput    = () => setParam("fc", +P.fc.value / 1000, false);
+P.fc.onchange   = () => trig(curTrack);
+P.q.oninput     = () => setParam("q", +P.q.value / 10, false);
+P.q.onchange    = () => trig(curTrack);
+P.drv.oninput   = () => setParam("drv", +P.drv.value / 100, true);
+P.drv.onchange  = () => trig(curTrack);
+P.cr.oninput    = () => setParam("cr", +P.cr.value / 100, true);
+P.cr.onchange   = () => trig(curTrack);
+
+// ---------------------------------------------------------------- header buttons
 document.getElementById("play").onclick = togglePlay;
 document.getElementById("bpmdn").onclick = () => { bpm = Math.max(30, bpm - 2); save(); paint(); };
 document.getElementById("bpmup").onclick = () => { bpm = Math.min(300, bpm + 2); save(); paint(); };
 document.getElementById("bpmr").oninput = e => { bpm = +e.target.value; save(); paint(); };
 document.getElementById("clear").onclick = () => {
-  for (let i = bank * TBP; i < bank * TBP + TBP; i++) pat[i].fill(0);
+  for (let r = 0; r < TBP; r++) pat[r].fill(0);
   save(); paint();
 };
+document.getElementById("kit808").onclick = () => applyKit(0);
+document.getElementById("kit909").onclick = () => applyKit(1);
+
+function applyKit(kit) {
+  let idx = 0;
+  for (let r = 0; r < TBP; r++) {
+    while (idx < SOUNDS.length && SOUNDS[idx].kit !== kit) idx++;
+    if (idx >= SOUNDS.length) idx = 0;
+    const tr = tracks[r];
+    tr.sound = idx;
+    tr.att = 0; tr.gain = 1; tr.fc = 1; tr.q = 0.7; tr.drv = 0; tr.cr = 0;
+    tr.dec = SOUNDS[idx].nat;
+    tr.dirty = true;
+  }
+  document.getElementById("kit808").classList.toggle("sel", kit === 0);
+  document.getElementById("kit909").classList.toggle("sel", kit === 1);
+  save(); paint();
+  ensureCtx();
+  trig(0);
+}
+
+// ---------------------------------------------------------------- sampler
 document.getElementById("sfile").onchange = async e => {
   ensureCtx();
   const fs = [...e.target.files].sort((a, b) => a.name.localeCompare(b.name));
   let n = 0;
-  for (let k = 0; k < Math.min(TBP, fs.length); k++) {
+  for (let k = 0; k < Math.min(8, fs.length); k++) {
     try {
       const ab = await fs[k].arrayBuffer();
-      const decoded = await ctx.decodeAudioData(ab);
-      bufs[2 * TBP + k] = bufOf(decoded.getChannelData(0));
-      NAMES[2][k] = fs[k].name.toUpperCase().slice(0, 11);
+      const dec = await ctx.decodeAudioData(ab);
+      samplerData[k] = dec.getChannelData(0);
+      SOUNDS[NSYNTH + k].name = fs[k].name.toUpperCase().slice(0, 11);
+      SOUNDS[NSYNTH + k].idx = k;
       n++;
-    } catch (err) {
-      continue;
-    }
+    } catch (err) { continue; }
   }
   const info = document.getElementById("sinfo");
-  info.textContent = n + " sample(s) geladen op pad 1-" + n;
+  info.textContent = n + " sample(s) geladen";
   info.classList.toggle("miss", n === 0);
-  paint();
+  for (const tr of tracks) if (tr.sound >= NSYNTH) tr.dirty = true;
+  Array.from(P.sound.options).forEach(o => { if (o.value >= NSYNTH) o.textContent = SOUNDS[+o.value].name; });
+  save(); paint();
 };
 
+// ---------------------------------------------------------------- keyboard
 document.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if (k === " ") { e.preventDefault(); togglePlay(); return; }
   if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   ensureCtx();
-  let m = null;
   switch (k) {
     case "arrowup":    curTrack = (curTrack + TBP - 1) % TBP; break;
     case "arrowdown":  curTrack = (curTrack + 1) % TBP; break;
     case "arrowleft":  curStepEd = (curStepEd + NSTEP - 1) % NSTEP; break;
     case "arrowright": curStepEd = (curStepEd + 1) % NSTEP; break;
-    case "a": pat[bank * TBP + curTrack][curStepEd] ^= 1; trig(bank * TBP + curTrack); save(); break;
-    case "s": trig(bank * TBP + curTrack); break;
-    case "q": bank = (bank + NBANK - 1) % NBANK; curTrack = 0; buildGrid(); break;
-    case "w": bank = (bank + 1) % NBANK; curTrack = 0; buildGrid(); break;
+    case "a": pat[curTrack][curStepEd] ^= 1; trig(curTrack); save(); break;
+    case "s": trig(curTrack); break;
+    case "q": case "w": {
+      const d = (k === "w") ? 1 : -1;
+      tracks[curTrack].sound = (tracks[curTrack].sound + d + SOUNDS.length) % SOUNDS.length;
+      tracks[curTrack].dec = SOUNDS[tracks[curTrack].sound].nat;
+      tracks[curTrack].att = 0;
+      tracks[curTrack].dirty = true;
+      trig(curTrack); save();
+      break;
+    }
     case "z": bpm = Math.max(30, bpm - 2); save(); break;
     case "x": bpm = Math.min(300, bpm + 2); save(); break;
     default: return;
@@ -442,12 +596,12 @@ document.addEventListener("keydown", e => {
   paint();
 });
 
+// ---------------------------------------------------------------- boot
 function demoPattern() {
-  pat[0].set([1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);  // 808 kick
-  pat[4].set([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]);  // 808 clap
-  [2, 6, 10, 14].forEach(s => { pat[2][s] = 1; });               // 808 closed hat
-  pat[11].set([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]); // 909 open hat
-  pat[19].set([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]); // 909 snare
+  pat[0].set([1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0]);             // T1 808 kick
+  pat[4].set([0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0]);             // T5 808 clap
+  [2,6,10,14].forEach(s => { pat[2][s] = 1; });                 // T3 hat
+  pat[1].set([0,0,0,1, 0,0,0,0, 0,0,0,1, 0,0,1,0]);             // T2 snare
 }
 
 const had = load();
