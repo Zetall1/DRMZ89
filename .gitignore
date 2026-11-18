@@ -1,0 +1,4 @@
+drumkit
+drumkit.pattern
+build/
+*.o
