@@ -54,7 +54,7 @@ make knulli CROSS=aarch64-linux-gnu- SDL_CFLAGS="-I/usr/include/SDL2"
 ```
 
 De linker gebruikt `pkg-config --libs sdl2`; op de handheld levert KNULLI de
-runtime-SDL2 zelf. Zonder pkg-config vallen beide counts terug op
+runtime-SDL2 zelf. Zonder pkg-config vallen beide terug op
 `-I/usr/include/SDL2` / `-lSDL2`.
 
 ## Eigen samples gebruiken (sampler-bank)

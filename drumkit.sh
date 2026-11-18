@@ -1,5 +1,5 @@
 #!/bin/sh
-# KNULLI ports launcher: kopieer deze map (drumkit) samt drumkit.sh naar
+# KNULLI ports launcher: kopieer deze map (drumkit inclusief drumkit.sh naar
 # /roms/ports/ op je SD-kaart en ververs de gamelijst.
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
