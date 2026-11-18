@@ -536,6 +536,7 @@ function applyKit(kit) {
     tr.att = 0; tr.gain = 1; tr.fc = 1; tr.q = 0.7; tr.drv = 0; tr.cr = 0;
     tr.dec = SOUNDS[idx].nat;
     tr.dirty = true;
+    idx++;
   }
   document.getElementById("kit808").classList.toggle("sel", kit === 0);
   document.getElementById("kit909").classList.toggle("sel", kit === 1);
